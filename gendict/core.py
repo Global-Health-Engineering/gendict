@@ -3,8 +3,6 @@ import json
 
 import re
 import pandas as pd
-import markdown
-from bs4 import BeautifulSoup
 
 from blablador import Blablador
 
@@ -42,32 +40,31 @@ def get_limited_unique_values(in_file, max_unique_values=None, dtype=None):
 
     return unique_dict
 
-def markdown_code_block_to_json(markdown_string):
-    json_match = re.search(r"```(?:json)?\n(.*?)\n```", markdown_string, re.DOTALL)
+def extract_json_from_llm_output(llm_output):
+    """
+    Extracts JSON content from an LLM output string, handling various code block formats.
+
+    Args:
+        llm_output (str): The string output from the LLM.
+
+    Returns:
+        dict or None: A dictionary representing the extracted JSON, or None if no valid JSON is found.
+    """
+    # Try to find JSON within a JSON code block (```json ... ```)
+    json_match = re.search(r"```(?:json)?(.*?)```", llm_output, re.DOTALL)
     if json_match:
-        json_content = json_match.group(1).strip()
         try:
-            return json.loads(json_content)
-        except json.JSONDecodeError as e_initial:
-            print(f"Initial JSON decode failed (within code block): {e_initial}")
-            # Try removing the first and last lines
-            lines = json_content.strip().split('\n')
-            if len(lines) > 2:  # Ensure there are at least 3 lines to remove from
-                modified_json_content = '\n'.join(lines[1:-1]).strip()
-                try:
-                    return json.loads(modified_json_content)
-                except json.JSONDecodeError as e_modified:
-                    print(f"JSON decode failed after removing first/last line (within code block): {e_modified}")
-                    return None
-            else:
-                print("Not enough lines to attempt removing first and last.")
-                return None
-    else:
-        try:
-            return json.loads(markdown_string.strip())
-        except json.JSONDecodeError as e_direct:
-            print(f"Error decoding JSON (direct): {e_direct}")
-            return None
+            return json.loads(json_match.group(1).strip())
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON within JSON code block: {e}")
+
+    # Try to parse the entire output as JSON (in case it's not in a code block)
+    try:
+        return json.loads(llm_output.strip())
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON from the entire output: {e}")
+
+    return None
 
 def write_descriptions_to_csv(json_data, out_file="dictionary.csv"):
     """
@@ -197,37 +194,9 @@ def gendict(API_KEY, in_file, max_unique_values=7, model=1, temperature=0, top_p
     # Generate descriptions.json
     response = blablador.completion(context)
 
-    md = markdown.Markdown()
-    html = md.convert(response)
+    json_content = extract_json_from_llm_output(response)
 
-    soup = BeautifulSoup(html, 'html.parser')
-    code_tags = soup.find_all('code')  # Find all <code> tags
-
-    json_content = None
-    for code in code_tags:
-        text = code.text.strip()
-        if text.lower().startswith('json'):
-            # Remove the "json" line and any leading/trailing whitespace
-            json_string = '\n'.join(text.split('\n')[1:]).strip()
-        else:
-            json_string = text
-
-        # Check if the string starts and ends with curly braces
-        if json_string.startswith('{') and json_string.endswith('}'):
-            try:
-                json_content = json.loads(json_string)
-                break  # Assuming the first valid JSON block is what we need
-            except json.JSONDecodeError as e:
-                print(f"Error decoding JSON: {e}")
-
-    if json_content:
-        if return_response:
-            return response, json_content
-        else:
-            return json_content
+    if return_response:
+        return response, json_content
     else:
-        print("No valid JSON code block found in the response.")
-        if return_response:
-            return response, None
-        else:
-            return None
+        return json_content
