@@ -98,7 +98,7 @@ class Blablador():
                 return(json.loads(response.text).get("choices"))
 
 
-def get_limited_unique_values(in_file, max_unique_values=None, dtype=None):
+def get_limited_unique_values(in_file, max_unique_values=None):
     """
     Reads a CSV file and returns a dictionary of unique values from each column,
     optionally limited to a specified number.
@@ -107,14 +107,13 @@ def get_limited_unique_values(in_file, max_unique_values=None, dtype=None):
         in_file (str): The path to the CSV file.
         max_unique_values (int, optional): The maximum number of unique values to return
                                 for each column. Defaults to None (all unique values).
-        dtype (dict, optional): Pandas dtype.
 
     Returns:
         dict: A dictionary where keys are column names and values are lists
               of unique values. Returns None if the file cannot be read.
     """
     try:
-        data_in = pd.read_csv(in_file, dtype=dtype)
+        data_in = pd.read_csv(in_file)
     except FileNotFoundError:
         print(f"Error: File not found at {in_file}")
         return None
@@ -276,7 +275,7 @@ def get_context(in_file, max_unique_values=7):
     """ % (max_unique_values, limited_unique_values)
     return context
 
-def gendict(API_KEY, in_file, max_unique_values=7, model=1, temperature=0, top_p=0.5, max_tokens=999, return_response=False):
+def gendict(API_KEY, in_file, max_unique_values=7, model=1, temperature=0, top_p=0.5, max_tokens=999, debug=False):
     # Config Blablador
     blablador = Blablador(API_KEY, model=model, temperature=temperature, top_p=top_p, max_tokens=max_tokens)
 
@@ -288,7 +287,7 @@ def gendict(API_KEY, in_file, max_unique_values=7, model=1, temperature=0, top_p
 
     json_content = extract_json_from_llm_output(response)
 
-    if return_response:
-        return response, json_content
+    if debug:
+        return context, response, json_content
     else:
         return json_content
