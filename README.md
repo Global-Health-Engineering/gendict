@@ -15,13 +15,8 @@ import os
 import json
 from gendict.gendict import core
 
-config_path = os.path.join(os.path.expanduser("~"), 'config.json')
-
-with open(config_path, 'r') as file:
-    config = json.load(file)
-
 path_to_data = ""path/to/data.csv""
-response, descriptions = core.gendict(config["HELMHOLTZ_API_KEY"],
+response, descriptions = core.gendict("YOUR_HELMHOLTZ_API_KEY",
                                       path_to_data, 
                                       max_unique_values=7, 
                                       model=1, 
