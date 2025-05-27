@@ -4,8 +4,15 @@ A package to generate tidy descscriptions for variables in a dataset.
 
 ## Installation
 
-```{bash}
-git add submodule https://github.com/Global-Health-Engineering/gendict.git
+**Requirements:**
+``` bash
+pip install -e .
+```
+
+**Usage design:**
+
+``` bash
+git submodule add https://github.com/Global-Health-Engineering/gendict.git
 ```
 
 ## Example
