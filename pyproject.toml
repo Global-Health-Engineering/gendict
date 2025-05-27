@@ -1,0 +1,12 @@
+[project]
+name = "gendict"
+version = "0.0.1"
+
+dependencies = [
+    "blablador @ file:./blablador",
+    "pandas",
+    "regex"
+]
+
+[tool.setuptools]
+packages = ["gendict"]

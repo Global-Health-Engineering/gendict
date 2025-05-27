@@ -1,0 +1,3 @@
+[submodule "blablador"]
+	path = blablador
+	url = https://github.com/Global-Health-Engineering/blablador
