@@ -12,8 +12,7 @@ pip install -e .
 **Usage design:**
 
 ``` bash
-git clone --recursive https://github.com/Global-Health-Engineering/gendict.git
-git submodule update --init --recursive
+git submodule add https://github.com/Global-Health-Engineering/gendict.git
 ```
 
 ## Example

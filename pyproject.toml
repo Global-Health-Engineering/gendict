@@ -3,7 +3,7 @@ name = "gendict"
 version = "0.0.1"
 
 dependencies = [
-    "blablador @ file:./blablador",
+    "blablador @ git+https://github.com/Global-Health-Engineering/blablador.git@main#egg=blablador",
     "pandas",
     "regex"
 ]
