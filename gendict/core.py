@@ -89,43 +89,51 @@ def write_descriptions_to_csv(json_data, out_file="dictionary.csv"):
     except Exception as e:
         print(f"Error writing to CSV file: {e}")
 
-def upload_descriptions_from_json(json_data, in_file):
+def upload_descriptions_from_json(in_file, json_data, dictionary_file):
     """
     Updates descriptions in an existing CSV file from a JSON dictionary.
+    The update is performed by matching both the variable name and the file name.
 
     Args:
+        in_file (str): The path to the dataframe the json_data refers to (e.g., "inst/ext/details.csv").
+                       The base name of this file (without path or extension) is used for matching.
         json_data (dict): A dictionary where keys are variable names and values are their descriptions.
-        in_file (str, optional): The path to the CSV file to update. Defaults to "dictionary.csv".
+        dictionary_file (str): The path to the CSV file to update.
     """
     try:
-        # Check if the input file exists
-        if not os.path.exists(in_file):
-            raise FileNotFoundError(f"Error: Input file '{in_file}' not found.")
+        # Check if the input dictionary file exists
+        if not os.path.exists(dictionary_file):
+            raise FileNotFoundError(f"Error: Input dictionary file '{dictionary_file}' not found.")
 
         # Read the existing CSV file into a Pandas DataFrame
-        df = pd.read_csv(in_file, encoding='utf-8')
+        df = pd.read_csv(dictionary_file, encoding='utf-8')
 
-        # Check if the 'description' column exists
-        if 'description' not in df.columns:
-            raise ValueError(f"Error: The CSV file '{in_file}' does not contain a 'description' column.")
+        # Check if all necessary columns exist in the DataFrame
+        required_columns = ['description', 'variable_name', 'file_name']
+        for col in required_columns:
+            if col not in df.columns:
+                raise ValueError(f"Error: The CSV file '{dictionary_file}' does not contain a '{col}' column.")
 
-        # Create a Series from the JSON data for easy lookup
-        new_descriptions = pd.Series(json_data)
+        base_in_file_name = os.path.splitext(os.path.basename(in_file))[0]
 
-        # Identify rows in the CSV where the 'variable_name' (assuming it exists as index or column)
-        # matches the keys in the json_data. Update the 'description' for those rows.
-        # We'll first check if 'variable_name' is a column, if not, we'll assume the index.
-        if 'variable_name' in df.columns:
-            df['description'] = df['variable_name'].map(new_descriptions).fillna(df['description'])
-        elif df.index.name is not None:
-            df['description'] = df.index.map(new_descriptions).fillna(df['description'])
-        else:
-            raise ValueError(f"Error: The CSV file '{in_file}' must have either a 'variable_name' column or an index matching the keys in the JSON data.")
+        # Iterate through the provided JSON data to update descriptions
+        for var_name, description in json_data.items():
+            # Create a boolean mask to identify rows that match both:
+            # 1. The file name (after stripping '.csv' from the 'file_name' column)
+            # 2. The variable name
+            # Using regex=False for str.replace ensures a literal string replacement.
+            mask = (df['file_name'].str.replace('.rda', '', regex=False) == base_in_file_name) & \
+                   (df['variable_name'] == var_name)
 
-        # Write the updated DataFrame back to the CSV file, overwriting the original
-        df.to_csv(in_file, index=True if df.index.name is not None else False, encoding='utf-8')
+            # Apply the update to the 'description' column for the rows identified by the mask.
+            # .loc is used for label-based indexing to ensure direct modification of the DataFrame.
+            df.loc[mask, 'description'] = description
 
-        print(f"Descriptions in '{in_file}' successfully updated.")
+        # Write the updated DataFrame back to the CSV file, overwriting the original.
+        # index=False prevents Pandas from writing the DataFrame index as a column in the CSV.
+        df.to_csv(dictionary_file, index=False, encoding='utf-8')
+
+        print(f"Descriptions in '{dictionary_file}' successfully updated for variables in '{in_file}'.")
 
     except FileNotFoundError as e:
         print(e)
@@ -133,6 +141,7 @@ def upload_descriptions_from_json(json_data, in_file):
         print(e)
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+
 
 def get_context(in_file, max_unique_values=7):
     limited_unique_values = get_limited_unique_values(in_file, max_unique_values=max_unique_values)
